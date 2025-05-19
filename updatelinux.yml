@@ -3,7 +3,6 @@
   become: true # Required for yum update
   tasks:
     - name: Run yum update
-      yum:
-        name: "*"
+      ansible.builtin.yum:
+        name: '*'
         state: latest
-        update_cache: true
