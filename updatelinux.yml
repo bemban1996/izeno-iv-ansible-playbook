@@ -1,11 +1,12 @@
 ---
 - hosts: all
   become: true # Required for yum update
+  gather_facts: no
   tasks:
     - name: Install python3-dnf
-      ansible.builtin.yum:
-        name: python3-dnf
-        state: present
+      ansible.builtin.raw: dnf install -y python3-dnf
+      register: result
+      changed_when: "'Complete!' in result.stdout"
   tasks:
     - name: Run yum update
       ansible.builtin.yum:
