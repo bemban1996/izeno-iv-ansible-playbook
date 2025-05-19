@@ -1,9 +1,34 @@
 ---
-- name: Install python3-dnf via raw module
+- name: Install python3-dnf and run yum update
   hosts: all
   become: yes
-  gather_facts: no
+  gather_facts: no  # Skip because system Python might not be ready
+
   tasks:
-    - name: Install python3-dnf
-      ansible.builtin.raw: dnf install -y python3-dnf
-      register: result
+    - name: Ensure dnf is installed (fallback for minimal systems)
+      raw: |
+        if ! command -v dnf >/dev/null 2>&1; then
+          if command -v yum >/dev/null 2>&1; then
+            yum install -y dnf
+          else
+            echo "Neither dnf nor yum is available"
+            exit 1
+          fi
+        fi
+      register: dnf_check
+      changed_when: "'Complete!' in dnf_check.stdout or 'Installed' in dnf_check.stdout"
+      failed_when: dnf_check.rc != 0 and '"Neither dnf nor yum" in dnf_check.stdout'
+
+    - name: Install python3-dnf using raw
+      raw: dnf install -y python3-dnf
+      register: dnf_install
+      changed_when: "'Complete!' in dnf_install.stdout or 'Installed' in dnf_install.stdout"
+      failed_when: dnf_install.rc != 0
+
+    - name: Gather facts now that Python is ready
+      setup:
+
+    - name: Run yum update to update all packages
+      ansible.builtin.yum:
+        name: '*'
+        state: latest
